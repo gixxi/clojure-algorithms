@@ -22,33 +22,58 @@
               ^{:doc "number of rounds, each round consists of selection, mutation and crossover"} max-round
               ^{:doc "probability [0..1] of mutating an gen of a population element. a typical value might be 0.1"} p-mutation
               ^{:doc "probability [0..1] of crossing two population elements during cross over. a typical value might be 0.15"} p-crossover
-              ^{:doc "an agent taking an integer as value. the value represents the progress of the genetic opimization in range [0..100]"} progress]
+              ^{:doc "an agent taking an integer as value. the value represents the progress of the genetic opimization in range [0..100]"} progress
+              ^clojure.lang.PersistentArrayMap args]
   clojure.lang.IDeref
   (deref [sc]
     (locking sc
       (or state
           (set! state
-                (loop [round 0 current-pop (population sc)]
-                  (let [sorted-pop (sort-population sc current-pop)
-                        selected-pop (selection sc sorted-pop)
-                        ! (comment (println :selected-pop selected-pop))
-                        mutated-pop (mutation sc selected-pop)
-                        ! (comment (println :mutated-pop mutated-pop))
-                        crossover-pop (crossover sc mutated-pop)
-                        ! (if
-                            (and
-                              progress
-                              (= clojure.lang.Agent (class progress)))
-                            (send-off progress #(+ % (int (Math/ceil (/ 100 max-round)))))
-                            nil)]
-                    (cond
-                      ;;get out
-                      (= round max-round)
-                        (first
-                          (sort-by last
-                                  (sort-population sc crossover-pop)))
-                      :else
-                      (recur (inc round) crossover-pop))))))))
+                (let [{:keys [terminating-condition monoton-domain-attributes verbose] :or {terminating-condition Long/MAX_VALUE monoterminating-condition false
+                                                                                            verbose false}} args]
+                  (loop [round 0 
+                         current-pop (population sc) 
+                         best-overall-fitness nil 
+                         rounds-without-overall-fitness-improv 0]
+                    (let [sorted-pop (sort-population sc current-pop) ;; returns[[elem fitness]]
+                          overall-fitness (apply + (map second sorted-pop))
+                          ! (if verbose
+                              (println :round round :overall-fitness overall-fitness :rounds-without-improve rounds-without-overall-fitness-improv))
+                          selected-pop (selection sc sorted-pop)
+                          ! (comment (println :selected-pop selected-pop))
+                          mutated-pop (mutation sc selected-pop)
+                          ! (comment (println :mutated-pop mutated-pop))
+                          crossover-pop (crossover sc mutated-pop)
+                          ! (if
+                              (and
+                                progress
+                                (= clojure.lang.Agent (class progress)))
+                              (send-off progress #(+ % (int (Math/ceil (/ 100 max-round)))))
+                              nil)]
+                      (cond
+                        ;;get out
+                        (or
+                          (= round max-round)
+                          (> rounds-without-overall-fitness-improv terminating-condition))
+                          (first
+                            (sort-by last
+                                    (sort-population sc crossover-pop)))
+                        :else
+                        (recur (inc round) 
+                               crossover-pop 
+                               (if
+                                 (or
+                                  (nil? best-overall-fitness)
+                                  (< overall-fitness best-overall-fitness))
+                                  overall-fitness
+                                  best-overall-fitness)
+                               (if
+                                 (and
+                                   (-> best-overall-fitness nil? not)
+                                   (< best-overall-fitness overall-fitness))
+                                 (inc rounds-without-overall-fitness-improv)
+                                 ;;else
+                                 0))))))))))
   PGa
   (population [this]
     (let [instance (fn []
