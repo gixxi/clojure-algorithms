@@ -19,13 +19,13 @@
                    (- (System/nanoTime) start#))))
 
 ;;check with fitness function that just sums up the components, 0 would be the value with the best fitness
-(fact (second @(TGa. nil domain 10 #(apply + %) 20 0.1 0.15 nil {})) => #(< % 3))
+(fact (second @(TGa. domain 10 #(apply + %) 20 0.1 0.15 nil {})) => #(< % 3))
 
 ;;check with fitness function that just sums up the components, 0 would be the value with the best fitness (print verbose values)
-(fact (second @(TGa. nil domain 10 #(apply + %) 20 0.1 0.15 nil {:verbose true})) => #(< % 3))
+(fact (second @(TGa. domain 10 #(apply + %) 20 0.1 0.15 nil {:verbose true})) => #(< % 3))
 
 ;;check that we run faster when terminating the algorithms as soon as no improvement is achieved over 5 consecutive rounds
 (let
-  [t1 (bench @(TGa. nil domain 10 #(apply + %) 120 0.1 0.15 nil {:terminating-condition 5}))
-   t2 (bench @(TGa. nil domain 10 #(apply + %) 120 0.1 0.15 nil {}))]
+  [t1 (bench @(TGa. domain 10 #(apply + %) 120 0.1 0.15 nil {:terminating-condition 5}))
+   t2 (bench @(TGa. domain 10 #(apply + %) 120 0.1 0.15 nil {}))]
   (fact (< t1 t2) => true))
