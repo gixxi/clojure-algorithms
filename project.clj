@@ -1,4 +1,4 @@
-(defproject org.lambdaroyal/clojure-algorithms "0.1-SNAPSHOT"
+(defproject org.lambdaroyal/clojure-algorithms "0.2-SNAPSHOT"
   :description "LambdaRoyal Clojure Algorithms"
   :url "https://github.com/gixxi/clojure-algorithms"
   :license {:name "FreeBSD License"}
